@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">  
+<head>
+  <meta charset="UTF-8">   
+  <title>FLOWS IoT Dashboard</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #46ccea; }
+    .card { background: rgb(249, 249, 249); padding: 30px; margin: 50px auto; width: 460px; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+    h2 { margin: 0; }
+    #charts { display: flex; justify-content: center; gap: 80px; flex-wrap: wrap; }
+    canvas { background: #f7f7f7; border-radius: 10px; padding: 10px; }
+    #status { font-weight: bold; font-size: 1em; }
+    .ok { color: green; }
+    .leak { color: red; }
+  </style>
+</head>
+<body>
+
+  <h1>FLOWS (Fire Line Overflow & Water Leak Sensor)</h1>
+  <h1>with IoT by using ESP32</h1>
+
+  <div class="card">
+    <h2>Water Flow Rate: <span id="flow">--</span> L/min</h2>
+    <h2>Water Pressure: <span id="pressure">--</span></h2>
+    <h2>System Status: <span id="status">--</span></h2>
+  </div>
+
+  <div id="charts">
+    <canvas id="flowChart" width="400" height="200"></canvas>
+    <canvas id="pressureChart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    // --- MQTT.js Setup ---
+    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+    client.on("connect", () => {
+      console.log("✅ Connected to HiveMQ broker via WebSocket");
+      client.subscribe("esp32/flow");
+      client.subscribe("esp32/pressure");
+      client.subscribe("esp32/status");
+    });
+
+    client.on("message", (topic, message) => {
+      const value = message.toString();
+      console.log("📩 " + topic + ": " + value);
+
+      if (topic === "esp32/flow") {
+        document.getElementById("flow").innerText = value;
+        addData(flowChart, value);
+        localStorage.setItem("flow", value);
+      }
+      if (topic === "esp32/pressure") {
+        document.getElementById("pressure").innerText = value;
+        addData(pressureChart, value);
+        localStorage.setItem("pressure", value);
+      }
+      if (topic === "esp32/status") {
+        const statusEl = document.getElementById("status");
+        if (value === "LEAK") {
+          statusEl.innerText = "🚨 Water Leak Detected!";
+          statusEl.className = "leak";
+        } else {
+          statusEl.innerText = "✅ No Water Leak Detected";
+          statusEl.className = "ok";
+        }
+        localStorage.setItem("status", value);
+      }
+    });
+
+    // --- Chart.js Setup ---
+    function createChart(ctx, label, color) {
+      return new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: label,
+            data: [],
+            borderColor: color,
+            fill: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: { x: { display: false }, y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    const flowChart = createChart(document.getElementById("flowChart"), "Flow (L/min)", "blue");
+    const pressureChart = createChart(document.getElementById("pressureChart"), "Pressure", "red");
+
+    function addData(chart, value) {
+      chart.data.labels.push("");
+      chart.data.datasets[0].data.push(parseFloat(value));
+      if (chart.data.labels.length > 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update();
+    }
+
+    // --- Load last values from localStorage when refreshing ---
+    window.onload = () => {
+      if (localStorage.getItem("flow")) {
+        document.getElementById("flow").innerText = localStorage.getItem("flow");
+      }
+      if (localStorage.getItem("pressure")) {
+        document.getElementById("pressure").innerText = localStorage.getItem("pressure");
+      }
+      if (localStorage.getItem("status")) {
+        const statusEl = document.getElementById("status");
+        if (localStorage.getItem("status") === "LEAK") {
+          statusEl.innerText = "🚨 Water Leak Detected!";
+          statusEl.className = "leak";
+        } else {
+          statusEl.innerText = "✅ No Water Leak Detected";
+          statusEl.className = "ok";
+        }
+      }
+    };
+  </script>
+</body>
+</html>
