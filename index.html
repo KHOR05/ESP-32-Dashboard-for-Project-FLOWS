@@ -7,13 +7,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; background: #46ccea; }
-    .card { background: rgb(249, 249, 249); padding: 30px; margin: 50px auto; width: 460px; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+    .card { background: rgb(249, 249, 249); padding: 20px; margin: 40px auto; width: 520px; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
     h2 { margin: 0; }
-    #charts { display: flex; justify-content: center; gap: 80px; flex-wrap: wrap; }
+    #charts { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
     canvas { background: #f7f7f7; border-radius: 10px; padding: 10px; }
     #status { font-weight: bold; font-size: 1em; }
     .ok { color: green; }
     .leak { color: red; }
+    #serverStatus { font-weight: bold; font-size: 1em; }
+    .online { color: green; }
+    .offline { color: red; }
   </style>
 </head>
 <body>
@@ -25,6 +28,7 @@
     <h2>Water Flow Rate: <span id="flow">--</span> L/min</h2>
     <h2>Water Pressure: <span id="pressure">--</span></h2>
     <h2>System Status: <span id="status">--</span></h2>
+    <h2>Server Connection: <span id="serverStatus" class="offline">🔴 Disconnected</span></h2>
   </div>
 
   <div id="charts">
@@ -36,11 +40,34 @@
     // --- MQTT.js Setup ---
     const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
+    const serverStatusEl = document.getElementById("serverStatus");
+
     client.on("connect", () => {
       console.log("✅ Connected to HiveMQ broker via WebSocket");
+      serverStatusEl.innerText = "🟢 Online";
+      serverStatusEl.className = "online";
+
       client.subscribe("esp32/flow");
       client.subscribe("esp32/pressure");
       client.subscribe("esp32/status");
+    });
+
+    client.on("error", () => {
+      console.log("❌ Error connecting to broker");
+      serverStatusEl.innerText = "🔴 Disconnected";
+      serverStatusEl.className = "offline";
+    });
+
+    client.on("close", () => {
+      console.log("⚠️ Connection closed");
+      serverStatusEl.innerText = "🔴 Disconnected";
+      serverStatusEl.className = "offline";
+    });
+
+    client.on("offline", () => {
+      console.log("⚠️ Broker offline");
+      serverStatusEl.innerText = "🔴 Disconnected";
+      serverStatusEl.className = "offline";
     });
 
     client.on("message", (topic, message) => {
