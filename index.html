@@ -6,29 +6,106 @@
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #46ccea; }
-    .card { background: rgb(249, 249, 249); padding: 20px; margin: 40px auto; width: 520px; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
-    h2 { margin: 0; }
-    #charts { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+    :root {
+      --bg-color: #46ccea;
+      --text-color: #000;
+      --card-bg: #f9f9f9;
+      --value-color: #333;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: var(--bg-color);
+      color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 50px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      width: 280px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+      transition: background 0.3s;
+    }
+
+    h2 { margin: 10px 0; }
+    #charts { display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; margin-top: 20px; }
     canvas { background: #f7f7f7; border-radius: 10px; padding: 10px; }
-    #status { font-weight: bold; font-size: 1em; }
-    .ok { color: green; }
-    .leak { color: red; }
-    #serverStatus { font-weight: bold; font-size: 1em; }
-    .online { color: green; }
-    .offline { color: red; }
+    .value { font-weight: bold; font-size: 1.2em; color: var(--value-color); }
+    .ok { color: green; font-weight: bold; }
+    .leak { color: red; font-weight: bold; }
+    .online { color: green; font-weight: bold; }
+    .offline { color: red; font-weight: bold; }
+
+    /* Dark mode variables */
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #f5f5f5;
+      --card-bg: #1e1e1e;
+      --value-color: #f5f5f5;
+    }
+
+    /* Toggle button */
+    #themeToggle {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #333;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    #themeToggle:hover {
+      background: #555;
+    }
   </style>
 </head>
 <body>
 
+  <button id="themeToggle">🌙 Dark Mode</button>
+
   <h1>FLOWS (Fire Line Overflow & Water Leak Sensor)</h1>
   <h1>with IoT by using ESP32</h1>
 
-  <div class="card">
-    <h2>Water Flow Rate: <span id="flow">--</span> L/min</h2>
-    <h2>Water Pressure: <span id="pressure">--</span> Psi</h2>
-    <h2>System Status: <span id="status">--</span></h2>
-    <h2>Server Connection: <span id="serverStatus" class="offline">🔴 Disconnected</span></h2>
+  <div class="container">
+    <div class="card">
+      <h2>💧 Water Flow Rate</h2>
+      <p><span id="flow" class="value">--</span> L/min</p>
+    </div>
+
+    <div class="card">
+      <h2>⏱ Water Pressure</h2>
+      <p><span id="pressure" class="value">--</span> Psi</p>
+    </div>
+
+    <div class="card">
+      <h2>⚡ System Status</h2>
+      <p id="status" class="value">--</p>
+    </div>
+
+    <div class="card"> 
+      <h2>🌐 Server Connection</h2> 
+      <p id="serverStatus" class="offline">🔴 Disconnected</p>
+    </div>
+
+    <div class="card">
+      <h2>🔌 ESP32 Device</h2>
+      <p id="esp32Status" class="offline">🔴 Offline</p>
+    </div>
   </div>
 
   <div id="charts">
@@ -37,10 +114,124 @@
   </div>
 
 <script>
-  // --- MQTT.js Setup ---
-  const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+  // 🌙 Dark/Light Mode Toggle
+  const themeToggle = document.getElementById("themeToggle");
 
+  // ---- Chart.js Setup ----
+  const MAX_POINTS = 720; // 1 hour at 5s interval
+
+  function createChart(ctx, label, color) {
+    return new Chart(ctx, {
+      type: "line",
+      data: { labels: [], datasets: [{ label, data: [], borderColor: color, fill: false }] },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: { x: { display: false }, y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  const flowChart = createChart(document.getElementById("flowChart"), "Flow (L/min)", "blue");
+  const pressureChart = createChart(document.getElementById("pressureChart"), "Pressure (psi)", "red");
+
+// ✅ Function to update chart colors based on theme
+function updateChartColors() {
+  if (document.body.classList.contains("dark")) {
+    // Dark mode chart style
+    flowChart.options.scales.x.ticks.color = "#f5f5f5";
+    flowChart.options.scales.y.ticks.color = "#f5f5f5";
+    flowChart.options.scales.x.grid.color = "#444";
+    flowChart.options.scales.y.grid.color = "#444";
+    flowChart.data.datasets[0].borderColor = "#4FC3F7"; // light blue
+
+    pressureChart.options.scales.x.ticks.color = "#f5f5f5";
+    pressureChart.options.scales.y.ticks.color = "#f5f5f5";
+    pressureChart.options.scales.x.grid.color = "#444";
+    pressureChart.options.scales.y.grid.color = "#444";
+    pressureChart.data.datasets[0].borderColor = "#FF3838"; // orange
+
+    document.getElementById("flowChart").style.background = "#1e1e1e";
+    document.getElementById("pressureChart").style.background = "#1e1e1e";
+
+  } else {
+    // Light mode chart style
+    flowChart.options.scales.x.ticks.color = "#000";
+    flowChart.options.scales.y.ticks.color = "#000";
+    flowChart.options.scales.x.grid.color = "#ccc";
+    flowChart.options.scales.y.grid.color = "#ccc";
+    flowChart.data.datasets[0].borderColor = "blue";
+
+    pressureChart.options.scales.x.ticks.color = "#000";
+    pressureChart.options.scales.y.ticks.color = "#000";
+    pressureChart.options.scales.x.grid.color = "#ccc";
+    pressureChart.options.scales.y.grid.color = "#ccc";
+    pressureChart.data.datasets[0].borderColor = "red";
+
+    document.getElementById("flowChart").style.background = "#f7f7f7";
+    document.getElementById("pressureChart").style.background = "#f7f7f7";
+  }
+
+  flowChart.update();
+  pressureChart.update();
+}
+
+
+  // 🌙 Dark/Light Mode Toggle button
+  themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    if (document.body.classList.contains("dark")) {
+      themeToggle.textContent = "☀️ Light Mode";
+    } else {
+      themeToggle.textContent = "🌙 Dark Mode";
+    }
+    updateChartColors(); // ✅ update chart color when switching theme
+  });
+
+  // ---- AddData, Save, Load History functions (unchanged) ----
+  function addData(chart, value) {
+    if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) {
+      console.error("⚠️ Chart not ready when adding");
+      return;
+    }
+
+    chart.data.labels.push(new Date().toLocaleTimeString());
+    chart.data.datasets[0].data.push(value);
+
+    if (chart.data.labels.length > MAX_POINTS) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+    chart.update();
+  }
+
+  function saveHistory(key, chart) {
+    if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) return;
+
+    localStorage.setItem(key, JSON.stringify({
+      labels: chart.data.labels || [],
+      data: chart.data.datasets[0].data || []
+    }));
+  }
+
+  function loadHistory(key, chart) {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        chart.data.labels = Array.isArray(parsed.labels) ? parsed.labels : [];
+        chart.data.datasets[0].data = Array.isArray(parsed.data) ? parsed.data : [];
+        chart.update();
+      } catch (e) {
+        console.warn("⚠️ Failed to load history for", key, e);
+      }
+    }
+  }
+
+  // ---- MQTT.js Setup ----
+  const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
   const serverStatusEl = document.getElementById("serverStatus");
+  const esp32StatusEl = document.getElementById("esp32Status");
 
   client.on("connect", () => {
     console.log("✅ Connected to HiveMQ broker via WebSocket");
@@ -50,22 +241,18 @@
     client.subscribe("esp32/flow");
     client.subscribe("esp32/pressure");
     client.subscribe("esp32/status");
+    client.subscribe("esp32/online");
   });
 
   client.on("error", () => {
-    console.log("❌ Error connecting to broker");
     serverStatusEl.innerText = "🔴 Disconnected";
     serverStatusEl.className = "offline";
   });
-
   client.on("close", () => {
-    console.log("⚠️ Connection closed");
     serverStatusEl.innerText = "🔴 Disconnected";
     serverStatusEl.className = "offline";
   });
-
   client.on("offline", () => {
-    console.log("⚠️ Broker offline");
     serverStatusEl.innerText = "🔴 Disconnected";
     serverStatusEl.className = "offline";
   });
@@ -78,12 +265,16 @@
       document.getElementById("flow").innerText = value;
       addData(flowChart, parseFloat(value));
       saveHistory("flowHistory", flowChart);
+      localStorage.setItem("flow", value);
     }
+
     if (topic === "esp32/pressure") {
       document.getElementById("pressure").innerText = value;
       addData(pressureChart, parseFloat(value));
       saveHistory("pressureHistory", pressureChart);
+      localStorage.setItem("pressure", value);
     }
+
     if (topic === "esp32/status") {
       const statusEl = document.getElementById("status");
       if (value === "LEAK") {
@@ -95,69 +286,22 @@
       }
       localStorage.setItem("status", value);
     }
+
+    if (topic === "esp32/online") {
+      if (value === "online") {
+        esp32StatusEl.innerText = "🟢 Online";
+        esp32StatusEl.className = "online";
+      } else {
+        esp32StatusEl.innerText = "🔴 Offline";
+        esp32StatusEl.className = "offline";
+      }
+    }
   });
 
-  // --- Chart.js Setup ---
-  function createChart(ctx, label, color) {
-    return new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: [],
-        datasets: [{
-          label: label,
-          data: [],
-          borderColor: color,
-          fill: false,
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: false,
-        scales: { x: { display: false }, y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  const flowChart = createChart(document.getElementById("flowChart"), "Flow (L/min)", "blue");
-  const pressureChart = createChart(document.getElementById("pressureChart"), "Pressure (psi)", "red");
-
-  function addData(chart, value) {
-    chart.data.labels.push(new Date().toLocaleTimeString()); // timestamp label
-    chart.data.datasets[0].data.push(value);
-    if (chart.data.labels.length > 20) {
-      chart.data.labels.shift();
-      chart.data.datasets[0].data.shift();
-    }
-    chart.update();
-  }
-
-  // --- Save chart history to localStorage ---
-  function saveHistory(key, chart) {
-    const data = {
-      labels: chart.data.labels,
-      values: chart.data.datasets[0].data
-    };
-    localStorage.setItem(key, JSON.stringify(data));
-  }
-
-  // --- Load chart history from localStorage ---
-  function loadHistory(key, chart) {
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const data = JSON.parse(saved);
-      chart.data.labels = data.labels;
-      chart.data.datasets[0].data = data.values;
-      chart.update();
-    }
-  }
-
-  // --- Load last values & history when refreshing ---
   window.onload = () => {
-    // restore history
     loadHistory("flowHistory", flowChart);
     loadHistory("pressureHistory", pressureChart);
 
-    // restore latest values
     if (localStorage.getItem("flow")) {
       document.getElementById("flow").innerText = localStorage.getItem("flow");
     }
@@ -174,6 +318,8 @@
         statusEl.className = "ok";
       }
     }
+
+    updateChartColors(); // ✅ apply correct colors on page load
   };
 </script>
 
