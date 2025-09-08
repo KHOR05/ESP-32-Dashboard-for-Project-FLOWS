@@ -5,7 +5,10 @@
   <title>FLOWS IoT Dashboard</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+
   <style>
+    /* Background colour settings */
     :root {
       --bg-color: #46ccea;
       --text-color: #000;
@@ -25,10 +28,11 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 50px;
+      gap: 55px;
       margin-top: 20px;
     }
 
+    /* Card settings */
     .card {
       background: var(--card-bg);
       padding: 20px;
@@ -38,10 +42,11 @@
       transition: background 0.3s;
     }
 
+    /* Chart settings */
     h2 { margin: 10px 0; }
-    #charts { display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; margin-top: 20px; }
-    canvas { background: #f7f7f7; border-radius: 10px; padding: 10px; }
-    .value { font-weight: bold; font-size: 1.2em; color: var(--value-color); }
+    #charts { display: flex; justify-content: center; gap: 55px; flex-wrap: wrap; margin-top: 20px; }
+    canvas { background: #f7f7f7; border-radius: 20px; padding: 10px; }
+    .value { font-weight: bold; font-size: 2em; color: var(--value-color); }
     .ok { color: green; font-weight: bold; }
     .leak { color: red; font-weight: bold; }
     .online { color: green; font-weight: bold; }
@@ -55,28 +60,53 @@
       --value-color: #f5f5f5;
     }
 
-    /* Toggle button */
-    #themeToggle {
+    /* Container for top buttons */
+    .top-buttons {
       position: absolute;
-      top: 15px;
-      right: 15px;
-      padding: 8px 16px;
+      top: 20px;
+      right: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Shared button style */
+    .top-buttons button {
+      padding: 12px 20px;
       border: none;
       border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    /* Dark mode toggle button */
+    #themeToggle {
       background: #333;
       color: white;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s;
     }
     #themeToggle:hover {
       background: #555;
+    }
+
+    /* Test notification button */
+    #testNotificationBtn {
+      background: #007BFF;
+      color: white;
+    }
+    #testNotificationBtn:hover {
+      background: #0056b3;
     }
   </style>
 </head>
 <body>
 
-  <button id="themeToggle">🌙 Dark Mode</button>
+  <!-- Top-right buttons -->
+  <div class="top-buttons">
+    <button id="themeToggle">🌙 Dark Mode</button>
+    <button id="testNotificationBtn">🔔 Test Notification</button>
+  </div>
 
   <h1>FLOWS (Fire Line Overflow & Water Leak Sensor)</h1>
   <h1>with IoT by using ESP32</h1>
@@ -113,6 +143,7 @@
     <canvas id="pressureChart" width="400" height="200"></canvas>
   </div>
 
+
 <script>
   // 🌙 Dark/Light Mode Toggle
   const themeToggle = document.getElementById("themeToggle");
@@ -135,47 +166,46 @@
   const flowChart = createChart(document.getElementById("flowChart"), "Flow (L/min)", "blue");
   const pressureChart = createChart(document.getElementById("pressureChart"), "Pressure (psi)", "red");
 
-// ✅ Function to update chart colors based on theme
-function updateChartColors() {
-  if (document.body.classList.contains("dark")) {
-    // Dark mode chart style
-    flowChart.options.scales.x.ticks.color = "#f5f5f5";
-    flowChart.options.scales.y.ticks.color = "#f5f5f5";
-    flowChart.options.scales.x.grid.color = "#444";
-    flowChart.options.scales.y.grid.color = "#444";
-    flowChart.data.datasets[0].borderColor = "#4FC3F7"; // light blue
+  // Function to update chart colors based on theme
+  function updateChartColors() {
+    if (document.body.classList.contains("dark")) {
+      // Dark mode chart style
+      flowChart.options.scales.x.ticks.color = "#f5f5f5";
+      flowChart.options.scales.y.ticks.color = "#f5f5f5";
+      flowChart.options.scales.x.grid.color = "#444";
+      flowChart.options.scales.y.grid.color = "#444";
+      flowChart.data.datasets[0].borderColor = "#4FC3F7"; // light blue
 
-    pressureChart.options.scales.x.ticks.color = "#f5f5f5";
-    pressureChart.options.scales.y.ticks.color = "#f5f5f5";
-    pressureChart.options.scales.x.grid.color = "#444";
-    pressureChart.options.scales.y.grid.color = "#444";
-    pressureChart.data.datasets[0].borderColor = "#FF3838"; // orange
+      pressureChart.options.scales.x.ticks.color = "#f5f5f5";
+      pressureChart.options.scales.y.ticks.color = "#f5f5f5";
+      pressureChart.options.scales.x.grid.color = "#444";
+      pressureChart.options.scales.y.grid.color = "#444";
+      pressureChart.data.datasets[0].borderColor = "#FF3838"; // light red
 
-    document.getElementById("flowChart").style.background = "#1e1e1e";
-    document.getElementById("pressureChart").style.background = "#1e1e1e";
+      document.getElementById("flowChart").style.background = "#1e1e1e";
+      document.getElementById("pressureChart").style.background = "#1e1e1e";
 
-  } else {
-    // Light mode chart style
-    flowChart.options.scales.x.ticks.color = "#000";
-    flowChart.options.scales.y.ticks.color = "#000";
-    flowChart.options.scales.x.grid.color = "#ccc";
-    flowChart.options.scales.y.grid.color = "#ccc";
-    flowChart.data.datasets[0].borderColor = "blue";
+    } else {
+      // Light mode chart style
+      flowChart.options.scales.x.ticks.color = "#000";
+      flowChart.options.scales.y.ticks.color = "#000";
+      flowChart.options.scales.x.grid.color = "#ccc";
+      flowChart.options.scales.y.grid.color = "#ccc";
+      flowChart.data.datasets[0].borderColor = "blue";
 
-    pressureChart.options.scales.x.ticks.color = "#000";
-    pressureChart.options.scales.y.ticks.color = "#000";
-    pressureChart.options.scales.x.grid.color = "#ccc";
-    pressureChart.options.scales.y.grid.color = "#ccc";
-    pressureChart.data.datasets[0].borderColor = "red";
+      pressureChart.options.scales.x.ticks.color = "#000";
+      pressureChart.options.scales.y.ticks.color = "#000";
+      pressureChart.options.scales.x.grid.color = "#ccc";
+      pressureChart.options.scales.y.grid.color = "#ccc";
+      pressureChart.data.datasets[0].borderColor = "red";
 
-    document.getElementById("flowChart").style.background = "#f7f7f7";
-    document.getElementById("pressureChart").style.background = "#f7f7f7";
+      document.getElementById("flowChart").style.background = "#f7f7f7";
+      document.getElementById("pressureChart").style.background = "#f7f7f7";
+    }
+
+    flowChart.update();
+    pressureChart.update();
   }
-
-  flowChart.update();
-  pressureChart.update();
-}
-
 
   // 🌙 Dark/Light Mode Toggle button
   themeToggle.addEventListener("click", () => {
@@ -185,10 +215,10 @@ function updateChartColors() {
     } else {
       themeToggle.textContent = "🌙 Dark Mode";
     }
-    updateChartColors(); // ✅ update chart color when switching theme
+    updateChartColors();
   });
 
-  // ---- AddData, Save, Load History functions (unchanged) ----
+  // ---- AddData, Save, Load History functions ----
   function addData(chart, value) {
     if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) {
       console.error("⚠️ Chart not ready when adding");
@@ -257,6 +287,60 @@ function updateChartColors() {
     serverStatusEl.className = "offline";
   });
 
+  // Request browser notification permission
+  if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
+
+  // Function to send notification + backend email call
+  function sendLeakNotification() {
+    // 🔔 Browser notification
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("🚨 Leak Alert!", {
+        body: "Water leak detected by ESP32!",
+        icon: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png"
+      });
+    }
+
+    // 🔊 Optional alert sound
+    const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    audio.play();
+
+    // 📧 Call backend to send Gmail
+    fetch("https://esp-32-dashboard-for-project-flows.onrender.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: "🚨 Leak Alert!",
+        message: "Water leak detected by ESP32!"
+      })
+    })
+    .then(res => res.json())
+    .then(data => console.log("📧 Email API response:", data))
+    .catch(err => console.error("❌ Email API error:", err));
+  }
+
+// Bind test notification button
+document.getElementById("testNotificationBtn").addEventListener("click", () => {
+  const statusEl = document.getElementById("status");
+
+  // Set to leak detected
+  statusEl.innerText = "🚨 Water Leak Detected! (TEST)";
+  statusEl.className = "leak";
+  sendLeakNotification();
+
+  console.log("✅ Test Leak Notification triggered");
+
+  // Auto-revert back after 5 seconds
+  setTimeout(() => {
+    statusEl.innerText = "✅ No Water Leak Detected";
+    statusEl.className = "ok";
+    console.log("🔄 System status auto-reset to normal");
+  }, 5000); // 5000 ms = 5 seconds
+});
+
+
+  // Handle MQTT messages
   client.on("message", (topic, message) => {
     const value = message.toString();
     console.log("📩 " + topic + ": " + value);
@@ -280,6 +364,7 @@ function updateChartColors() {
       if (value === "LEAK") {
         statusEl.innerText = "🚨 Water Leak Detected!";
         statusEl.className = "leak";
+        sendLeakNotification();  // trigger notification
       } else {
         statusEl.innerText = "✅ No Water Leak Detected";
         statusEl.className = "ok";
@@ -298,6 +383,7 @@ function updateChartColors() {
     }
   });
 
+  // On page load
   window.onload = () => {
     loadHistory("flowHistory", flowChart);
     loadHistory("pressureHistory", pressureChart);
@@ -319,7 +405,7 @@ function updateChartColors() {
       }
     }
 
-    updateChartColors(); // ✅ apply correct colors on page load
+    updateChartColors();
   };
 </script>
 
