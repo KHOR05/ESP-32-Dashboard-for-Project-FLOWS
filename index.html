@@ -307,12 +307,12 @@
     audio.play();
 
     // 📧 Call backend to send Gmail
-    fetch("https://esp-32-dashboard-for-project-flows.onrender.com", {
+    fetch("https://esp-32-dashboard-for-project-flows.onrender.com/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        subject: "🚨 Leak Alert!",
-        message: "Water leak detected by ESP32!"
+        subject: "Test from ESP32 Dashboard",
+        message: "This is a test alert"
       })
     })
     .then(res => res.json())
@@ -411,3 +411,4 @@ document.getElementById("testNotificationBtn").addEventListener("click", () => {
 
 </body>
 </html>
+
