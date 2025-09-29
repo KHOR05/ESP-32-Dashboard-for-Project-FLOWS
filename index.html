@@ -306,22 +306,34 @@
     const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
     audio.play();
 
-    // 📧 Call backend to send Gmail
+    // 📧 Call backend to send email via SendGrid
     fetch("https://esp-32-dashboard-for-project-flows.onrender.com/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        subject: "Test from ESP32 Dashboard",
-        message: "This is a test alert"
+        subject: "Leak Alert 🚨",
+        message: "Water leak detected from ESP32 system!"
       })
     })
-    .then(res => res.json())
-    .then(data => console.log("📧 Email API response:", data))
-    .catch(err => console.error("❌ Email API error:", err));
+      .then(async (res) => {
+        const data = await res.json();
+        console.log("📧 Email API response:", data);
+
+        if (res.ok && data.success) {
+          alert("✅ Notification email sent successfully!");
+        } else {
+          alert("❌ Failed to send email. Check server logs.");
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Error calling email API:", err);
+        alert("⚠️ Could not reach email server.");
+      });
   }
 
-// Bind test notification button
-document.getElementById("testNotificationBtn").addEventListener("click", () => {
+
+  // Bind test notification button
+  document.getElementById("testNotificationBtn").addEventListener("click", () => {
   const statusEl = document.getElementById("status");
 
   // Set to leak detected
@@ -411,4 +423,3 @@ document.getElementById("testNotificationBtn").addEventListener("click", () => {
 
 </body>
 </html>
-
