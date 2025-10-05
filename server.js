@@ -1,4 +1,4 @@
-// server.js
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -8,22 +8,27 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-// ⚡ Load SendGrid API Key from environment variable
+// ✅ Check and load SendGrid API key
+if (!process.env.SENDGRID_API_KEY) {
+  console.error("❌ Missing SENDGRID_API_KEY environment variable!");
+  process.exit(1);
+}
+
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 app.post("/send-email", async (req, res) => {
   const { subject, message } = req.body;
 
   const mailOptions = {
-    from: "khorshanshan@gmail.com",  // ✅ must be the verified sender
-    to: "khorshanshan@gmail.com",        // 👈 change to the recipient
+    from: "khorshanshan@gmail.com",  // ✅ must be verified in SendGrid
+    to: "khorshanshan@gmail.com",    // recipient
     subject: subject || "ESP32 Leak Alert",
     text: message || "Leak detected from ESP32!",
   };
 
   try {
     await sgMail.send(mailOptions);
-    console.log("✅ Email sent!");
+    console.log("✅ Email sent successfully!");
     res.json({ success: true });
   } catch (error) {
     console.error("❌ SendGrid Error:", error.response?.body || error.message);
