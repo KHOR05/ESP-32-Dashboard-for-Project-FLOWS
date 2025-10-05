@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -8,7 +7,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-// ✅ Check and load SendGrid API key
+// ✅ Check and load SendGrid API key directly from Render env vars
 if (!process.env.SENDGRID_API_KEY) {
   console.error("❌ Missing SENDGRID_API_KEY environment variable!");
   process.exit(1);
