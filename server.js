@@ -16,11 +16,11 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 // ✅ Configure Nodemailer transporter for Gmail SMTP
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,           // TLS port
-  secure: false,       // use true for port 465
+  port: 587,
+  secure: false,
   auth: {
-    user: "khorshanshan@gmail.com", // your Gmail address
-    pass: "mook wxdg aibs pczr", // your Gmail App Password (NOT normal password)
+    user: process.env.EMAIL_USER, // taken from Render environment variable
+    pass: process.env.EMAIL_PASS, // taken from Render environment variable
   },
 });
 
@@ -37,10 +37,9 @@ transporter.verify((error, success) => {
 app.post("/send-email", async (req, res) => {
   const { subject, message, to } = req.body;
 
-  // Default email info (if fields missing)
   const mailOptions = {
-    from: "khorshanshan@gmail.com",                  // sender (must match Gmail account)
-    to: to || "khorshanshan@gmail.com",              // recipient
+    from: process.env.EMAIL_USER,
+    to: to || process.env.EMAIL_USER,
     subject: subject || "ESP32 Notification",
     text: message || "Alert from ESP32 device!",
   };
@@ -55,7 +54,6 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
-// ✅ Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
