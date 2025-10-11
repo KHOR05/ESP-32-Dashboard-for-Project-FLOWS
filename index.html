@@ -302,31 +302,45 @@
 
   // Function to send Google Chrome notification only
   function sendLeakNotification() {
-    // 🔔 Show browser notification (Chrome / Edge / Firefox)
-    if ("Notification" in window) {
-      if (Notification.permission === "granted") {
-        new Notification("🚨 Water Leak Alert!", {
-          body: "A leak has been detected by your FLOWS system.",
-          icon: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
-          badge: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
-        });
-      } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(permission => {
-          if (permission === "granted") {
-            new Notification("🚨 Water Leak Alert!", {
-              body: "A leak has been detected by your FLOWS system.",
-              icon: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
-              badge: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
-            });
-          }
-        });
-      }
+    // Check if Notifications API is supported
+    if (!("Notification" in window)) {
+      alert("❌ This browser does not support notifications.");
+      return;
     }
 
-    // 🔊 Optional alert sound
+    // Ask permission if not already granted
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission().then(permission => {
+        console.log("Notification permission:", permission);
+        if (permission === "granted") {
+          showNotification();
+        } else {
+          alert("⚠️ Please allow notifications in your browser settings.");
+        }
+      });
+    } else {
+      showNotification();
+    }
+
+    // Optional: Play alert sound
     const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
     audio.play();
   }
+
+  // Function that actually shows the notification
+  function showNotification() {
+    const notification = new Notification("🚨 FLOWS Alert", {
+      body: "Water leak detected by your ESP32 system!",
+      icon: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
+      badge: "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
+    });
+
+    // Make it clickable — opens your dashboard if clicked
+    notification.onclick = () => {
+      window.focus();
+    };
+  }
+
 
 
   // Bind test notification button
