@@ -300,6 +300,10 @@
     Notification.requestPermission();
   }
 
+  console.log("Notification supported:", "Notification" in window);
+  console.log("Notification permission:", Notification.permission);
+
+  
   // Function to send Google Chrome notification only
   function sendLeakNotification() {
     // Check if Notifications API is supported
@@ -434,3 +438,4 @@
 
 </body>
 </html>
+
