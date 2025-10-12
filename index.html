@@ -6,6 +6,8 @@
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+  <link rel="manifest" href="manifest.json">
+
 
   <style>
     /* Background colour settings */
@@ -153,6 +155,27 @@
 
 
 <script>
+  // Register Service Worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("✅ Service Worker Registered"))
+      .catch(err => console.error("❌ Service Worker Registration Failed:", err));
+  }
+
+    navigator.serviceWorker.ready.then((reg) => {
+    return reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: "YOUR_PUBLIC_VAPID_KEY"
+    });
+  }).then((sub) => {
+    fetch("https://your-server.com/subscribe", {
+      method: "POST",
+      body: JSON.stringify(sub),
+      headers: { "Content-Type": "application/json" }
+    });
+  });
+
+
   // 🌙 Dark/Light Mode Toggle
   const themeToggle = document.getElementById("themeToggle");
 
@@ -303,7 +326,7 @@
   console.log("Notification supported:", "Notification" in window);
   console.log("Notification permission:", Notification.permission);
 
-  
+
   // Function to send Google Chrome notification only
   function sendLeakNotification() {
     // Check if Notifications API is supported
@@ -411,31 +434,71 @@
   });
 
   // On page load
-  window.onload = () => {
-    loadHistory("flowHistory", flowChart);
-    loadHistory("pressureHistory", pressureChart);
+    window.onload = () => {
+      loadHistory("flowHistory", flowChart);
+      loadHistory("pressureHistory", pressureChart);
 
-    if (localStorage.getItem("flow")) {
-      document.getElementById("flow").innerText = localStorage.getItem("flow");
-    }
-    if (localStorage.getItem("pressure")) {
-      document.getElementById("pressure").innerText = localStorage.getItem("pressure");
-    }
-    if (localStorage.getItem("status")) {
-      const statusEl = document.getElementById("status");
-      if (localStorage.getItem("status") === "LEAK") {
-        statusEl.innerText = "🚨 Water Leak Detected!";
-        statusEl.className = "leak";
-      } else {
-        statusEl.innerText = "✅ No Water Leak Detected";
-        statusEl.className = "ok";
+      if (localStorage.getItem("flow")) {
+        document.getElementById("flow").innerText = localStorage.getItem("flow");
       }
-    }
+      if (localStorage.getItem("pressure")) {
+        document.getElementById("pressure").innerText = localStorage.getItem("pressure");
+      }
+      if (localStorage.getItem("status")) {
+        const statusEl = document.getElementById("status");
+        if (localStorage.getItem("status") === "LEAK") {
+          statusEl.innerText = "🚨 Water Leak Detected!";
+          statusEl.className = "leak";
+        } else {
+          statusEl.innerText = "✅ No Water Leak Detected";
+          statusEl.className = "ok";
+        }
+      }
 
-    updateChartColors();
-  };
+      updateChartColors();
+    };
+
+    /* ✅ --- START OF ADDED PUSH SUBSCRIPTION FUNCTION --- */
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(registration => {
+          console.log("✅ Service Worker registered:", registration);
+
+          // Ask for push notification permission
+          return Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              console.log("🔔 Notification permission granted.");
+              return registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: "BH5lF245zY83SZEohDm7Fgu-Vd0vHaKhhEmhYMeYCzh3DKwkw95aRgKre_mGMdEeyUKzucGkeNolilV84Q91RrY"
+              });
+            } else {
+              console.warn("⚠️ Notification permission denied.");
+            }
+          });
+        })
+        .then(subscription => {
+          if (!subscription) return;
+
+          console.log("📡 Sending subscription to backend:", subscription);
+
+          // 👉 Send subscription to your Render backend
+          fetch("https://flows-push-bridge.onrender.com/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(subscription)
+          })
+            .then(res => {
+              if (res.ok) console.log("✅ Subscription saved on server");
+              else console.error("❌ Failed to send subscription:", res.status);
+            })
+            .catch(err => console.error("❌ Error sending subscription:", err));
+        })
+        .catch(err => console.error("❌ Service Worker error:", err));
+    } else {
+      console.warn("⚠️ Push notifications not supported in this browser.");
+    }
 </script>
 
 </body>
 </html>
-
