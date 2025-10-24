@@ -5,6 +5,7 @@
   "display": "standalone",
   "background_color": "#46ccea",
   "theme_color": "#46ccea",
+  "description": "An IoT-based Fire Line Overflow & Water Leak Detection System using ESP32.",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2913/2913551.png",
