@@ -499,10 +499,46 @@
     } else {
       console.warn("⚠️ Push notifications not supported in this browser.");
     }
+
+  // ---- PWA Install Button ----
+let deferredPrompt;
+const installButton = document.createElement("button");
+installButton.textContent = "📲 Install FLOWS App";
+installButton.style.cssText = `
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: #00BFFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 9999;
+  display: none;
+`;
+document.body.appendChild(installButton);
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installButton.style.display = 'block'; // show the install button
+});
+
+installButton.addEventListener('click', async () => {
+  installButton.style.display = 'none';
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log(`User response: ${outcome}`);
+  deferredPrompt = null;
+});
+
 </script>
 
 </body>
 </html>
+
 
 
 
