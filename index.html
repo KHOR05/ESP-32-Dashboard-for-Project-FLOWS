@@ -165,10 +165,11 @@
     navigator.serviceWorker.ready.then((reg) => {
     return reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: "YOUR_PUBLIC_VAPID_KEY"
+      applicationServerKey: "BH5lF245zY83SZEohDm7Fgu-Vd0vHaKhhEmhYMeYCzh3DKwkw95aRgKre_mGMdEeyUKzucGkeNolilV84Q91RrY"
+
     });
   }).then((sub) => {
-    fetch("https://your-server.com/subscribe", {
+    fetch("https://flows-push-bridge.onrender.com/subscribe", {
       method: "POST",
       body: JSON.stringify(sub),
       headers: { "Content-Type": "application/json" }
@@ -502,3 +503,4 @@
 
 </body>
 </html>
+
