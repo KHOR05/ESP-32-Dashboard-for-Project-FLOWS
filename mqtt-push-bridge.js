@@ -3,12 +3,12 @@ const mqtt = require("mqtt");
 const webpush = require("web-push");
 const express = require("express");
 const bodyParser = require("body-parser");
-const cors = require("cors"); // 👈 important for browser requests
+const cors = require("cors"); 
 
 // ---- Express app setup ----
 const app = express();
 app.use(bodyParser.json());
-app.use(cors()); // 👈 allows your dashboard (e.g., GitHub Pages) to send POST requests
+app.use(cors()); 
 
 // ---- MQTT setup ----
 const mqttClient = mqtt.connect("mqtt://broker.hivemq.com");
@@ -75,3 +75,4 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () =>
   console.log(`🌐 MQTT Web Push Bridge running on port ${PORT}`)
 );
+
