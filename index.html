@@ -62,7 +62,7 @@
       --value-color: #f5f5f5;
     }
 
-    /* --- Buttons Row (Below Title) --- */
+    /* Buttons Row (Below Title) */
     .button-row {
       display: flex;
       justify-content: center;
@@ -114,7 +114,6 @@
   <h1>FLOWS (Fire Line Overflow & Water Leak Sensor)</h1>
   <h1>with IoT by using ESP32</h1>
 
-   <!-- Buttons Row Below Title -->
   <div class="button-row">
     <button id="themeToggle">🌙 Toggle Dark Mode</button>
     <button id="testNotificationBtn">🔔 Test Notification</button>
@@ -180,7 +179,7 @@
   // 🌙 Dark/Light Mode Toggle
   const themeToggle = document.getElementById("themeToggle");
 
-  // ---- Chart.js Setup ----
+  // Chart.js Setup
   const MAX_POINTS = 720; // 1 hour at 5s interval
 
   function createChart(ctx, label, color) {
@@ -250,7 +249,7 @@
     updateChartColors();
   });
 
-  // ---- AddData, Save, Load History functions ----
+  // AddData, Save, Load History functions
   function addData(chart, value) {
     if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) {
       console.error("⚠️ Chart not ready when adding");
@@ -500,7 +499,7 @@
       console.warn("⚠️ Push notifications not supported in this browser.");
     }
 
-  // ---- PWA Install Button ----
+  // PWA Install Button
 let deferredPrompt;
 const installButton = document.createElement("button");
 installButton.textContent = "📲 Install FLOWS App";
@@ -538,7 +537,6 @@ installButton.addEventListener('click', async () => {
 
 </body>
 </html>
-
 
 
 
